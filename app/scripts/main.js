@@ -71,6 +71,51 @@
       console.error('Error during service worker registration:', e);
     });
   }
+  /* Charts */
+  var data = {
+    labels: ['Beer', 'Pizza', 'Wings'],
+    series: [40, 25, 45]
+  };
 
-  // Your custom JavaScript goes here
+  var options = {
+    labelInterpolationFnc: function(value) {
+      return value[0];
+    }
+  };
+
+  var responsiveOptions = [
+    ['screen and (min-width: 640px)', {
+      chartPadding: 30,
+      labelOffset: 100,
+      labelDirection: 'explode',
+      labelInterpolationFnc: function(value) {
+        return value;
+      }
+    }],
+    ['screen and (min-width: 1024px)', {
+      labelOffset: 80,
+      chartPadding: 20
+    }]
+  ];
+  var pie = new Chartist.Pie('.ct-chart', data, options, responsiveOptions);
+
+  /* End Charts */
+
+  document.getElementById('add').addEventListener('click', httpGetAsync('http://localhost:8080/query/2', function(response) {
+    data.series = response.statistics.map(Number);
+    data.labels = response.labels;
+    pie.update(data);
+  }));
+
+  /*! Async HTTP */
+  function httpGetAsync(theUrl, callback) {
+    var xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = function() {
+      if (xmlHttp.readyState === 4 && xmlHttp.status === 200) {
+        callback(JSON.parse(xmlHttp.responseText));
+      }
+    };
+    xmlHttp.open('GET', theUrl, true);
+    xmlHttp.send(null);
+  }
 })();

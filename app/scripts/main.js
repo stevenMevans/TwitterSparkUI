@@ -19,7 +19,6 @@
 /* eslint-env browser */
 (function() {
   'use strict';
-
   // Check to make sure service workers are supported in the current browser,
   // and that the current page is accessed from a secure origin. Using a
   // service worker from an insecure origin will trigger JS console errors. See
@@ -73,39 +72,62 @@
   }
   /* Charts */
   var data = {
-    labels: ['Beer', 'Pizza', 'Wings'],
-    series: [40, 25, 45]
+    labels: [],
+    series: []
   };
-
   var options = {
     labelInterpolationFnc: function(value) {
       return value[0];
     }
   };
-
+  var sum = function(a, b) {
+    return a + b;
+  };
   var responsiveOptions = [
     ['screen and (min-width: 640px)', {
       chartPadding: 30,
       labelOffset: 100,
       labelDirection: 'explode',
-      labelInterpolationFnc: function(value) {
-        return value;
+      labelInterpolationFnc: function(label, index) {
+        return label + ' (' + Math.round(data.series[index] / data.series.reduce(sum) * 100) + '%)';
       }
     }],
     ['screen and (min-width: 1024px)', {
       labelOffset: 80,
-      chartPadding: 20
+      chartPadding: 30
     }]
   ];
-  var pie = new Chartist.Pie('.ct-chart', data, options, responsiveOptions);
+  var pie = new Chartist.Pie('#pieChart', data, options, responsiveOptions);
 
   /* End Charts */
-
-  document.getElementById('add').addEventListener('click', httpGetAsync('http://localhost:8080/query/2', function(response) {
+  httpGetAsync('http://localhost:8080/query/2', function(response) {
     data.series = response.statistics.map(Number);
     data.labels = response.labels;
     pie.update(data);
-  }));
+  });
+
+  httpGetAsync('http://localhost:8080/query/3', function(response) {
+    var dater = [];
+    response.forEach(function(t) {
+      t = {x: new Date(t._1), y: parseInt(t._2, 10)};
+      dater.push(t);
+      console.log(t);
+    });
+    new Chartist.Line('#timeChart', {
+      series: [{
+        name: 'series-1',
+        data: dater
+      }]
+    }, {
+      axisX: {
+        type: Chartist.FixedScaleAxis,
+        divisor: Math.min(dater.length, 10),
+        labelInterpolationFnc: function(value) {
+          return moment(value).format('ddd HH:mm');
+        }
+      }
+    });
+  });
 
   /*! Async HTTP */
   function httpGetAsync(theUrl, callback) {
